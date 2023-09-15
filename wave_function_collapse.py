@@ -39,16 +39,33 @@ class WaveFunctionCollapse:
             self.rules = {}
     
     
-    def generate_rules(self, rules_grid:np.ndarray) -> None:
+    def generate_rules(self, rules_grid:np.ndarray, def_rule:list=None) -> None:
+        if def_rule is None: def_rule = [0]
+        
         h, w = rules_grid.shape
         rules = {}
         for x in range(w):
             for y in range(h):
                 sample = self.sample_grid(y, x, rules_grid)
-                r = np.array(sample[1:]).reshape(4, 1)
-                rules[sample[0]] = np.hstack((rules.get(sample[0], np.zeros((4, 1))), r))
+                
+                t, r = sample[0], sample[1:]
+                ruleset = rules.get(t, [def_rule.copy() for _ in range(4)])
+                
+                for i, _r in enumerate(r):
+                    ruleset[i].append(_r)
+
+                rules[t] = ruleset
+                
+
+                # r = np.array(sample[1:]).reshape(4, 1)
+                
+                 # TODO: Change to non-np so that each direction does not require the same number of rules?
+                 
+                # rules[sample[0]] = np.hstack((rules.get(sample[0], np.zeros((4, 1))), r))
                 
         return rules
+    
+    # def add_rule(self, rules:dict, tile:int, new_rule) -> None:
     
     def sample_grid(self, x:int, y:int, grid=None, oob_value=-1):
         
@@ -57,7 +74,9 @@ class WaveFunctionCollapse:
             
         sample = []
         h, w = grid.shape
-        for _x, _y in [[x, y], [x, y+1], [x+1, y], [x, y-1], [x-1, y]]:
+        
+        #               xy      up        right     down      left
+        for _x, _y in [[x, y], [x, y-1], [x+1, y], [x, y+1], [x-1, y]]:
             if _x < 0 or _x >= w or _y < 0 or _y >= h:
                 sample.append(oob_value)
             else:
@@ -72,6 +91,7 @@ if __name__ == '__main__':
     rules_grid = np.array([[1, 1, 1],
                            [3, 2, 1],
                            [1, 1, 1]])
+    
     rules = wfc.generate_rules(rules_grid)
     for k, r in rules.items():
         print(f'\n{k}')

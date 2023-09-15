@@ -19,28 +19,64 @@ import numpy as np
 class WaveFunctionCollapse:
     
     def __init__(self, h:int, w:int,
-                #  tile_set:np.ndarray,
-                 initial_grid:np.ndarray=None, # TODO: Remove some params.
                  initial_rules:dict=None) -> None:
         
-        self.h = h
-        self.w = w
+        self.h = h # Height of grid
+        self.w = w # Width of grid
         
         # Grid of tiles
-        if initial_grid is not None:
-            self.grid = initial_grid
-        else:
-            self.grid = np.zeros((w, h))
+        self.grid = np.zeros((w, h))
         
         # Rules determining which tiles can be placed next to each other
-        if initial_rules is not None:
-            self.rules = initial_rules
-        else:
-            self.rules = {}
+        self.rules = initial_rules
+        if self.rules is None: self.rules = {}
+    
+    @property
+    def tile_types(self) -> list:
+        return list(self.rules.keys())
+    
+    def get_probability_grid(self, grid=None) -> np.ndarray:# , rules=None) -> np.ndarray:
+        if grid is None: grid = self.grid
+        # if rules is None: rules = self.rules
+        
+        grid = np.array(grid)
+        h, w = grid.shape
+        
+        probability_grid = np.zeros((h, w))
+        
+        # uncertain_grid = np.ma.masked_where(grid == 0, grid)
+        print(np.ma.masked_where(grid == 0, grid))
+        # certain_grid = np.ma.masked_where(grid !=0 , grid)
+        print(np.ma.masked_where(grid !=0 , grid))
+        
+        print(probability_grid)
+        
+        for x in range(w):
+            for y in range(h):
+                if grid[y, x] != 0:
+                    # If the tile is already placed, set the probability to 1 TODO: Is this correct?
+                    probability_grid[y, x] = 1
+                else:
+                    sample = self.sample_grid(y, x, grid=grid)
+                    probability_grid[y, x] = self.get_probability(sample, rules)
+        
+        
+    # def get_probability(self, sample:list) -> float: # , rules:dict) -> float:
+    #     if len(sample) != 5: raise ValueError('Sample must be of length 5.')
+        
+    #     t, r = sample[0], sample[1:]
+        
+    #     ruleset = self.rules.get(t, None)
+    #     if ruleset is None: return -1 # 0?
+        
+    #     for 
+        
+        
     
     
-    def generate_rules(self, rules_grid:np.ndarray, def_rule:list=None) -> None:
-        if def_rule is None: def_rule = [0]
+        
+    def generate_rules(self, rules_grid:np.ndarray, default_rule:list=None, overwrite:bool=True) -> None:
+        if default_rule is None: default_rule = [0]
         
         h, w = rules_grid.shape
         rules = {}
@@ -49,29 +85,21 @@ class WaveFunctionCollapse:
                 sample = self.sample_grid(y, x, rules_grid)
                 
                 t, r = sample[0], sample[1:]
-                ruleset = rules.get(t, [def_rule.copy() for _ in range(4)])
+                ruleset = rules.get(t, [default_rule.copy() for _ in range(4)])
                 
                 for i, _r in enumerate(r):
                     ruleset[i].append(_r)
 
                 rules[t] = ruleset
                 
-
-                # r = np.array(sample[1:]).reshape(4, 1)
-                
-                 # TODO: Change to non-np so that each direction does not require the same number of rules?
-                 
-                # rules[sample[0]] = np.hstack((rules.get(sample[0], np.zeros((4, 1))), r))
-                
+        if overwrite: self.rules = rules
         return rules
     
-    # def add_rule(self, rules:dict, tile:int, new_rule) -> None:
     
     def sample_grid(self, x:int, y:int, grid=None, oob_value=-1):
         
-        if grid is None:
-            grid = self.grid
-            
+        if grid is None: grid = self.grid
+        
         sample = []
         h, w = grid.shape
         
@@ -93,7 +121,9 @@ if __name__ == '__main__':
                            [1, 1, 1]])
     
     rules = wfc.generate_rules(rules_grid)
-    for k, r in rules.items():
-        print(f'\n{k}')
-        for r, n in zip(r, ['up', 'right', 'down', 'left']):
-            print(n, r)
+    wfc.get_probability_grid(rules=rules)
+    
+    # for k, r in rules.items():
+    #     print(f'\n{k}')
+    #     for r, n in zip(r, ['up', 'right', 'down', 'left']):
+    #         print(n, r)

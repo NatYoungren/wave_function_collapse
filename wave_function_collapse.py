@@ -31,6 +31,12 @@ class SimpleWFC:
         # Rules determining which tiles can be placed next to each other
         self.rules = initial_rules
         if self.rules is None: self.rules = {}
+        
+        self.step_count = 0
+    
+    @property
+    def finished(self) -> bool:
+        return not np.any(self.grid == 0)
     
     @property
     def tile_types(self) -> list:
@@ -38,15 +44,15 @@ class SimpleWFC:
     
     def step(self) -> None:
         
-        # If the grid is full, return
-        if not np.any(self.grid == 0): return
+        # If the grid contains no unresolved tiles, return
+        if self.finished: return
         
         # Get the probability grid
         
         # Get the tile with the highest non-1 probability
         
         # Resolve the tile
-        
+        self.step_count += 1
         return
         
     

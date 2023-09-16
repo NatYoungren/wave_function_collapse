@@ -1,8 +1,14 @@
 # Nathaniel Alden Homans Youngren
 # September 14, 2023
 
+
+# This simple implementation of the Wave Function Collapse algorithm is built with minimal research.
+#   This is primarily an exploration of my initial non-technical understanding of the algorithm.
+#   The goal is to build a general understanding of what these pattern generation algorithms are doing,
+#       and then use that basis to examine more complete WFC implementations.
+
 import numpy as np
-# import random
+
 
 # NOTE: Numpy arrays are ordered (height, width, depth), i.e. (y, x, z)?
 #       Try to stick to this conventioned as we want to use image data.
@@ -16,6 +22,7 @@ import numpy as np
 # 3 -> Allowed below
 # 4 -> Allowed left
 # {Placed tile: [[allowed tiles above], [allowed tiles to the right], [allowed tiles below], [allowed tiles to the left]]}
+
 
 class SimpleWFC:
     
@@ -34,6 +41,7 @@ class SimpleWFC:
         
         self.step_count = 0
     
+    
     @property
     def finished(self) -> bool:
         return not np.any(self.grid == 0)
@@ -41,6 +49,7 @@ class SimpleWFC:
     @property
     def tile_types(self) -> list:
         return list(self.rules.keys())
+    
     
     def step(self) -> None:
         

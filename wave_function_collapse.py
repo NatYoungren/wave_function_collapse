@@ -6,6 +6,7 @@ import numpy as np
 
 # NOTE: Numpy arrays are ordered (height, width, depth), i.e. (y, x, z)?
 #       Try to stick to this conventioned as we want to use image data.
+# TODO: Reorder loops to be (y, x)/(h, w) instead of (x, y) for consistency with numpy arrays?
 
 
 # Rules format:
@@ -16,7 +17,7 @@ import numpy as np
 # 4 -> Allowed left
 # {Placed tile: [[allowed tiles above], [allowed tiles to the right], [allowed tiles below], [allowed tiles to the left]]}
 
-class WaveFunctionCollapse:
+class SimpleWFC:
     
     def __init__(self, h:int, w:int,
                  initial_rules:dict=None) -> None:
@@ -35,7 +36,21 @@ class WaveFunctionCollapse:
     def tile_types(self) -> list:
         return list(self.rules.keys())
     
-    def get_probability_grid(self, grid=None) -> np.ndarray:# , rules=None) -> np.ndarray:
+    def step(self) -> None:
+        
+        # If the grid is full, return
+        if not np.any(self.grid == 0): return
+        
+        # Get the probability grid
+        
+        # Get the tile with the highest non-1 probability
+        
+        # Resolve the tile
+        
+        return
+        
+    
+    def get_probability_grid(self, grid=None) -> np.ndarray:
         if grid is None: grid = self.grid
         # if rules is None: rules = self.rules
         
@@ -51,16 +66,59 @@ class WaveFunctionCollapse:
         
         print(probability_grid)
         
-        for x in range(w):
-            for y in range(h):
+        options_grid = []
+
+        for y in range(h):
+            options_grid.append([])
+            
+            for x in range(w):
+                options_grid[y].append([])
+                
                 if grid[y, x] != 0:
                     # If the tile is already placed, set the probability to 1 TODO: Is this correct?
-                    probability_grid[y, x] = 1
+                    probability_grid[y, x] = -1
+                    
                 else:
-                    sample = self.sample_grid(y, x, grid=grid)
-                    probability_grid[y, x] = self.get_probability(sample, rules)
+                    # sample = self.get_sample(x, y, grid=grid)
+                    options = self.get_tile_options(x, y, grid=grid)
+                    
+                    if not options:
+                        probability_grid[y, x] = -1
+                        continue
+                    
+                    probability_grid[y, x] = 1/len(options)
+                    options_grid[y][x] = options
+                    
+        print(probability_grid)
+        print(options_grid)
+        return probability_grid
+
+                    # probability_grid[y, x] = self.get_probability(sample, rules)
         
         
+    def get_tile_options(self, x:int, y:int, grid=None, restrictive=False) -> list:
+        if grid is None: grid = self.grid
+        options = []
+        
+        sample = self.get_sample(x, y, grid=grid)
+        t, r = sample[0], sample[1:]
+        
+        
+        
+        for _t, _r in self.rules.items():
+            for i, dir_r in enumerate(_r):
+                if r[i] not in dir_r:
+                    break
+            else:
+                options.append(_t) # NOTE: This is not weighted by number of times the example appears in the ruleset.
+                
+        print(x, y, t, options)
+        
+        return options
+                # if _r[i] == t:
+                #     options.append(_t)
+
+    
     # def get_probability(self, sample:list) -> float: # , rules:dict) -> float:
     #     if len(sample) != 5: raise ValueError('Sample must be of length 5.')
         
@@ -68,6 +126,11 @@ class WaveFunctionCollapse:
         
     #     ruleset = self.rules.get(t, None)
     #     if ruleset is None: return -1 # 0?
+        
+    #     tile_types = self.tile_types
+        
+        
+        
         
     #     for 
         
@@ -82,7 +145,7 @@ class WaveFunctionCollapse:
         rules = {}
         for x in range(w):
             for y in range(h):
-                sample = self.sample_grid(y, x, rules_grid)
+                sample = self.get_sample(x, y, rules_grid)
                 
                 t, r = sample[0], sample[1:]
                 ruleset = rules.get(t, [default_rule.copy() for _ in range(4)])
@@ -96,7 +159,7 @@ class WaveFunctionCollapse:
         return rules
     
     
-    def sample_grid(self, x:int, y:int, grid=None, oob_value=-1):
+    def get_sample(self, x:int, y:int, grid=None, oob_value=-1): #TODO: Y AND X ARE FLIPPED???
         
         if grid is None: grid = self.grid
         
@@ -114,16 +177,17 @@ class WaveFunctionCollapse:
         
 
 if __name__ == '__main__':
-    wfc = WaveFunctionCollapse(5, 5)
+    wfc = SimpleWFC(5, 6)
     
     rules_grid = np.array([[1, 1, 1],
                            [3, 2, 1],
                            [1, 1, 1]])
     
     rules = wfc.generate_rules(rules_grid)
-    wfc.get_probability_grid(rules=rules)
     
-    # for k, r in rules.items():
-    #     print(f'\n{k}')
-    #     for r, n in zip(r, ['up', 'right', 'down', 'left']):
-    #         print(n, r)
+    for k, r in rules.items():
+        print(f'\n{k}')
+        for r, n in zip(r, ['up', 'right', 'down', 'left']):
+            print(n, r)
+    wfc.get_probability_grid()
+    

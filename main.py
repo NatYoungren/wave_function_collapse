@@ -1,10 +1,13 @@
 # Nathaniel Alden Homans Youngren
 # September 16, 2023
 
+import time
 import numpy as np
 import pygame as pg
+
 from wave_function_collapse import SimpleWFC
 import display_vars as dv
+
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                   # INSTRUCTIONS: #                     #
@@ -46,7 +49,7 @@ import display_vars as dv
 
 
 # WFC CELL VARS
-GRID_W, GRID_H = 6, 6           # Grid size
+GRID_W, GRID_H = 10, 10           # Grid size
 DEFAULT_TYPE = 1                # Default cost of cells
 CELL_KEYS = {pg.K_0: 0,         # Dict mapping keypress to cell type
              pg.K_1: 1,
@@ -60,11 +63,11 @@ CELL_KEYS = {pg.K_0: 0,         # Dict mapping keypress to cell type
              pg.K_9: 9}
 
 # RULE VARS
-RULES_GRID_W, RULES_GRID_H = 3, 3 # Width and height of rules grid
+RULES_GRID_W, RULES_GRID_H = 5, 5 # Width and height of rules grid
 RULES_GRID = np.full((RULES_GRID_W, RULES_GRID_H), fill_value=DEFAULT_TYPE) # Grid of rules
 
 # STEP SPEED VARS
-STEPS_PER_SECOND = 10       # Number of steps per second (if manual control is disabled)
+STEPS_PER_SECOND = 100       # Number of steps per second (if manual control is disabled)
 STEPS_PER_FRAME = 0         # Maximum steps per frame update (if < 1, no limit)
 
 # Dict to track state information, avoids individual global variables or passing/returning many arguments.
@@ -123,7 +126,9 @@ def main():
         
         # Reset the simulation if flagged
         if STATE_DICT['resetting']:
-            sim = SimpleWFC(h=GRID_H, w=GRID_W)
+            sim = SimpleWFC(h=GRID_H, w=GRID_W, random_seed=time.time())
+            if STATE_DICT['resetting'] == 2:
+                RULES_GRID[:] = DEFAULT_TYPE
             STATE_DICT['searching'] = False
             STATE_DICT['resetting'] = False
         
@@ -217,7 +222,7 @@ def parse_events(sim: SimpleWFC):
             elif event.key == pg.K_SPACE:                
                 if not STATE_DICT['searching']:
                     print('TODO: SET RULES NOW')
-                    # TODO: sim.generate_rules()
+                    sim.generate_rules(RULES_GRID)
                     STATE_DICT['searching'] = True
                 
                 # If manual control is enabled, step the simulation

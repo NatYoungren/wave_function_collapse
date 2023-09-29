@@ -107,6 +107,8 @@ def collapse_probability_field(prob_field: np.ndarray, x: int, y: int, i: int):
     
     
 # NOTE: This heuristic also needs to take an adjustable rules array parameter.
+# NOTE: This heuristic may need to consider the cell weights of the original board and the current board.
+#       A separate method may be needed as well.
 # Low collapse value means the choice is less likely to lead to a broken board state.
 #  NOTE:
 @njit

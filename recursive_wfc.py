@@ -175,3 +175,18 @@ def collapse_value(prob_field: np.ndarray, x: int, y: int, i: int):
     xx = x // 3
     yy = y // 3
     return min(prob_field[xx*3:xx*3+3, yy*3:yy*3+3, i].sum(), prob_field[x, :, i].sum(), prob_field[:, y, i].sum())
+
+
+if __name__ == '__main__':
+    input_arr = np.array([[1, 1, 1],
+                          [3, 2, 1],
+                          [1, 1, 1]])
+    
+    input_types = np.array([1, 2, 3])
+    
+    rules_arr = np.zeros((3, 3, 3, 3))
+    
+    generate_rules(input_arr, input_types, rules_arr, wrap_edges=False)
+    
+    # All cell-type relationships with 1
+    print(rules_arr[:, :, :, 0])

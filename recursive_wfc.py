@@ -71,14 +71,16 @@ def recursive_solve(prob_field: np.ndarray, collapsed_cells: np.ndarray = None):
     # If any cell was fully explored without success, the puzzle is unsolvable.
     return None, recursions, failed_recursions, collapse_count
 
+
 # Overwrites values in arr based whose indexes in mask_arr are True, with a given maskval
 @njit
-def mask_2darray_inplace(arr: np.ndarray, mask_arr: np.ndarray, maskval=10):
+def mask_2darray_inplace(arr: np.ndarray, mask_arr: np.ndarray, maskval=255):
     w, h = arr.shape[:2]
     for x in range(w):
         for y in range(h):
             if mask_arr[x][y]:
                 arr[x][y] = maskval
+
 
 # NOTE: This needs to be modified to take an adjustable rules array parameter, and collapse cell indexes based on those rules.
 @njit

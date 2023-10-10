@@ -1,78 +1,31 @@
+# Nathaniel Alden Homans Youngren
+# October 2, 2023
+
 import numpy as np
 from copy import deepcopy
 from numba import njit
+from typing import Optional
+import bisect
+import random
 import time
 import timeit
 
-
-def generate_rules(input_arr: np.ndarray, input_types: np.ndarray, rules_arr: np.ndarray, rules_origin: tuple = None, wrap_edges: bool = False):
-    """ Generates a rules array from an input array.
-        Input array can be any 2d shape, but must contain values from the input_types array.
-        
-        The rules array is a 3D array of shape (w, h, t).
-        Each index in the rules array tracks the possibility of a neighboring cell containing a corresponding value.
-        The rules array is initialized with 1s in all cells.
-        The rules array is then collapsed to 0s for all cells that are known to contain a value.
-        
-        The rules array is used to track the possibility of each cell containing each value.
-        The rules array is modified in place.
-        
-    Args:
-        input_arr (np.ndarray): (n, m) array of values.
-        input_types (np.ndarray): (t) length array of possible cell values.
-        rules_arr (np.ndarray): (t, w, h, t) array of rules. (0-1)
-        rules_origin (tuple): (x, y) coordinates of the origin of the rules array (i.e. index to which the current cell is aligned).
-        wrap_edges (bool): Whether to wrap at the edges of the input array.
-    """
-    n, m = input_arr.shape
-    t = len(input_types)
-    _t, w, h, __t = rules_arr.shape
-    
-    if not (t == _t == __t):
-        raise ValueError("Error: input_types length does not match rules_arr depth.")
-    
-    if rules_origin is None:
-        if h % 2 == 1 and w % 2 == 1:
-            rules_origin = (h // 2, w // 2)
-        else:
-            raise ValueError("Error: rules_origin must be provided for even-sized rules_arr.")
-        
-    for _n in range(n):
-        for _m in range(m):
-            # Determine type-index of current cell.
-            v = np.where(input_types == input_arr[_n, _m])[0]
-
-            # Iterate over rules area and record which cell-types are neighbors of the current cell.
-            for _w in range(w):
-                for _h in range(h):
-                    x, y = _n - rules_origin[0] + _w, _m - rules_origin[1] + _h
-                    
-                    if wrap_edges:
-                        x %= n
-                        y %= m
-                    else:
-                        if x < 0 or x >= n or y < 0 or y >= m:
-                            continue
-                    # Add edge type to rules array?
-                    
-                    _v = np.where(input_types == input_arr[x, y])[0]
-                    
-                    rules_arr[v, _w, _h, _v] += 1
+from sudoku_functions import mask_2darray_inplace
+from rule_utils import generate_simple_rules
+from heuristic_utils import make_entropy_cell_heuristic, make_random_weight_map
+from solver_utils import weighted_choice
+from setup_utils import prob_field_to_array
 
 
-
-#  NOTE: Taken from my sudoku_solver repository.
-#
-# Fully Recursive Solver
-#  Essentially masked solve but without any collapse propagation.
-#  Each cell collapse triggers a recursion, this is excessive but robust.
-#  Goal is to minimize the work performed during each recursion and focus on quickly exploring the solution space.
-@njit
-def recursive_solve(prob_field: np.ndarray, collapsed_cells: np.ndarray = None):
+# Fully Recursive Solver (Updated for non-sudoku)
+# @njit
+def wfc_recursive_solve(prob_field: np.ndarray, rules_arr: np.ndarray, rules_origin: tuple, wrap_edges: bool = False, collapsed_cells: Optional[np.ndarray] = None):
     # During the initial call, create a blank collapsed_cells array.
     if collapsed_cells is None:
-        collapsed_cells = np.zeros((9, 9), dtype=np.bool_)
-        
+        collapsed_cells = np.zeros(prob_field.shape[:2], dtype=np.bool_)
+    
+    print(prob_field_to_array(prob_field, [i+1 for i in range(prob_field.shape[2])]))
+    
     # NOTE: These are purely performance metrics.
     recursions = 1          # Total recursions, including initial solver call. (min 1)
     failed_recursions = 0   # Total recursions that failed to find a solution. (min 0)
@@ -87,33 +40,44 @@ def recursive_solve(prob_field: np.ndarray, collapsed_cells: np.ndarray = None):
         return None, recursions, failed_recursions, collapse_count
     
     # Return solution if all cells are solved.
-    if resolution_map.sum() == 81:
+    if resolution_map.sum() == resolution_map.size:
         return prob_field, recursions, failed_recursions, collapse_count
     
-    # Overwrite any previously collapsed cells with a high value (10).
+    # Overwrite any previously collapsed cells with a high value (255).
     mask_2darray_inplace(resolution_map, collapsed_cells)
-
+    
     # Find the cell with the lowest number of options (that has not been previously collapsed).
     c = np.argmin(resolution_map)
-    x, y = c // 9, c % 9
+    x, y = c // collapsed_cells.shape[0], c % collapsed_cells.shape[0]
     collapsed_cells[x, y] = 1
     
     # Determine the remaining options for that cell.
-    indexes = np.where(prob_field[x][y])[0]
-    
-    # If that cell has multiple options, sort them by collapse value.
-    if len(indexes) < 1:
-        indexes[:] = [x for _, x in sorted(zip([collapse_value(prob_field, x, y, i) for i in indexes], indexes), reverse=False)]
+    indexes = list(np.where(prob_field[x][y])[0])
+
+    # Generate weights for each option. # TODO: Maybe select cells based on weights from the whole grid rather than just the current cell?
+    if len(indexes) > 1:
+        weights = [#rules_collapse_value(prob_field, x, y, i, rules_arr, rules_origin, wrap_edges) * 
+                   ratio_collapse_value(prob_field, x, y, i, rules_arr, rules_origin, wrap_edges)
+                   for i in indexes]
+    else:
+        weights = [1]
+
     
     # Recurse over each option.
-    for i in indexes:
+    while len(indexes) > 0:
+        print('indexes',indexes)
+        print('weights',weights)
+        _i = weighted_choice(weights)
+        i = indexes.pop(_i)
+        weights.pop(_i)
+        print('Selected:', x, y, 'with', i)
         
         # Pass copies of the probability field and collapsed cells when recursing.
         pf = prob_field.copy()
-        collapse_probability_field(pf, x, y, i)
+        apply_collapse_rules(pf, x, y, i, rules_arr, rules_origin, wrap_edges)
         
         # Result, recursion_count, failed_recursions, collapse_count
-        r, _rs, _frs, _c = recursive_solve(pf, collapsed_cells.copy())
+        r, _rs, _frs, _c = wfc_recursive_solve(pf, rules_arr, rules_origin, wrap_edges, collapsed_cells.copy())
         
         recursions += _rs           # Update metrics.
         failed_recursions += _frs   #
@@ -121,72 +85,140 @@ def recursive_solve(prob_field: np.ndarray, collapsed_cells: np.ndarray = None):
         
         # If a solution was found, return it.
         if r is not None:
-            return r,  recursions, failed_recursions, collapse_count
+            return r, recursions, failed_recursions, collapse_count
 
         failed_recursions += 1
+        print('Failed:', x, y, 'with', i)
         
     # If any cell was fully explored without success, the puzzle is unsolvable.
     return None, recursions, failed_recursions, collapse_count
 
 
-# Overwrites values in arr based whose indexes in mask_arr are True, with a given maskval
-@njit
-def mask_2darray_inplace(arr: np.ndarray, mask_arr: np.ndarray, maskval=255):
-    w, h = arr.shape[:2]
-    for x in range(w):
-        for y in range(h):
-            if mask_arr[x][y]:
-                arr[x][y] = maskval
-
-
 # NOTE: This needs to be modified to take an adjustable rules array parameter, and collapse cell indexes based on those rules.
 @njit
-def collapse_probability_field(prob_field: np.ndarray, x: int, y: int, i: int):
+def apply_collapse_rules(prob_field: np.ndarray, x: int, y: int, i: int, rules_arr: np.ndarray, rules_origin: tuple, wrap_edges: bool = False):
     """ Collapses an x, y cell to a single given value-index (i).
         > This change would indicate that the cell is known to contain the value (i+1).
         
-        Perpetuates that change by setting the value-index (i) to 0 for all other cells in the row, column, and region.
+        Perpetuates that change by removing nonviable options from the probability field.
         Modifies prob_field in place.
         
     Args:
-        prob_field (np.ndarray): 9x9x9 grid tracking the possibility of each cell containing each value.
+        prob_field (np.ndarray): 3D grid tracking the possibility of each cell containing each value.
         x (int): X coordinate of the cell to collapse.
         y (int): Y coordinate of the cell to collapse.
-        i (int): Index of the value to collapse to. (0-8)
+        i (int): Index of the value to collapse to.
+        
+        rules_arr (np.ndarray): 4D grid tracking all possible neighbors for each celltype.
+        rules_origin (tuple): (x, y) coordinates of the origin of the rules array (i.e. index to which the current cell is aligned).
+        wrap_edges (bool): Whether to wrap at the edges of the input array.
     """
-    prob_field[x, :, i] = 0         # Set option i to 0 for all cells in the x column.
-    prob_field[:, y, i] = 0         # Set option i to 0 for all cells in the y row.
+    for _x in range(rules_arr.shape[1]):
+        for _y in range(rules_arr.shape[2]):
+            for _i in range(rules_arr.shape[3]):
+                __x = x - rules_origin[0] + _x
+                __y = y - rules_origin[1] + _y
+                
+                # Can use subfuncs to avoid repeated checks.
+                if wrap_edges:
+                    __x %= prob_field.shape[0]
+                    __y %= prob_field.shape[1]
+                else:
+                    if __x < 0 or __x >= prob_field.shape[0] or __y < 0 or __y >= prob_field.shape[1]:
+                        continue
+                
+                # Simplify this.
+                if rules_arr[i, _x, _y, _i] == 0:
+                    prob_field[__x, __y, _i] = 0
+
+
+def ratio_collapse_value(prob_field: np.ndarray, x: int, y: int, i: int, rules_arr: np.ndarray, rules_origin: tuple, wrap_edges: bool = False):
+    # NOTE: Wrap not needed here.
+    rules_count = rules_arr[i, rules_origin[0], rules_origin[1], i].sum()
+    rules_ratio = rules_count / rules_arr[:, rules_origin[0], rules_origin[1], :].sum()
+    print('rules_ratio:', i, rules_count, rules_arr[:, rules_origin[0], rules_origin[1], :].sum(), rules_ratio)
     
-    xx = x // 3                     # Set option i to 0 for all cells in the region.
-    yy = y // 3                     # (xx, yy) is the top-left corner of the 3x3 region containing x, y.
-    prob_field[xx*3:xx*3+3, yy*3:yy*3+3, i] = 0
+    if rules_ratio == 0:
+        print(i, 'not found in rules')
+        return 255
     
-    prob_field[x, y, :] = 0         # Set all options for the x, y cell to 0.
-    prob_field[x, y, i] = 1         # Overwrite option i for the x, y cell to 1.
+    resolution_map = prob_field.sum(axis=2)
+    known_cells = np.where(resolution_map == 1)
     
+    # TODO: Should we factor in possible cells as well/alternatively?
+    # print('known_cells', known_cells)
+    if len(known_cells[0]) == 0:
+        print('no known cells')
+        return rules_ratio
     
-# NOTE: This heuristic also needs to take an adjustable rules array parameter.
-# NOTE: This heuristic may need to consider the cell weights of the original board and the current board.
-#       A separate method may be needed as well.
-# Low collapse value means the choice is less likely to lead to a broken board state.
-#  NOTE:
-@njit
-def collapse_value(prob_field: np.ndarray, x: int, y: int, i: int):
-    xx = x // 3
-    yy = y // 3
-    return min(prob_field[xx*3:xx*3+3, yy*3:yy*3+3, i].sum(), prob_field[x, :, i].sum(), prob_field[:, y, i].sum())
+    type_count = 1
+    for _x, _y in zip(*known_cells):
+        if _x == x and _y == y:
+            continue
+        # _x, _y = known_cell // prob_field.shape[0], known_cell % prob_field.shape[0]
+        if prob_field[_x, _y, i]:
+            type_count += 1
+    
+    type_ratio = type_count / len(known_cells[0])
+    
+    print('type_ratio:', i, type_count, len(known_cells[0]), type_ratio)
+    print('ratio:', i, type_ratio / rules_ratio)
+    return type_ratio / rules_ratio
+
+
+# @njit
+def rules_collapse_value(prob_field: np.ndarray, x: int, y: int, i: int, rules_arr: np.ndarray, rules_origin: tuple, wrap_edges: bool = False):
+    t, w, h, _ = rules_arr.shape
+    _x, _y, _ = prob_field.shape
+    
+    # These values represent how far the rules array extends beyond the edges of the probability field.
+    x_offset = max(0, rules_origin[0] - x)
+    y_offset = max(0, rules_origin[1] - y)
+    x_offset_end = max(0, x + (w - rules_origin[0]) - _x) # x position + width of rules - width of prob_field
+    y_offset_end = max(0, y + (h - rules_origin[1]) - _y) # x: 0 + (3 - 1) - 3 = -1 (0)
+                                                          # j: 2 + (3 - 1) - 3 = 1
+    if wrap_edges: # TODO: Test wrapping.
+        # These values are used to shift the prob_field such that the rules array does not extend beyond the edges of the prob_field.
+        # x . . (x - rules_origin[0])
+        # . . . (0 - 1)
+        # . . j
+        if x_offset and x_offset_end or y_offset and y_offset_end:
+            raise ValueError("Error: rules array cannot wrap at both edges of the probability field.")
+        
+        roll_indexes = (x_offset - x_offset_end, y_offset - y_offset_end)
+        
+        print('preroll', prob_field[:, :, i])
+        print('rolling', roll_indexes)
+        print('postroll', np.roll(prob_field[:, :, i], roll_indexes, axis=(0, 1)))
+        
+        sample = np.roll(prob_field[:, :, i], roll_indexes, axis=(0, 1))
+        sample = sample * rules_arr[i, :, :, i]
+    else:
+        # We use our offsets to crop the rules array to the size of the compared area in the probability field.
+        sample = prob_field[max(0, x-rules_origin[0]):min(_x, x-rules_origin[0]+w), max(0, y-rules_origin[1]):min(_y, y-rules_origin[1]+h), i] * rules_arr[i, x_offset:w-x_offset_end, y_offset:h-y_offset_end, i]
+    
+    return np.count_nonzero(sample)# sample.sum()
+
+
 
 
 if __name__ == '__main__':
-    input_arr = np.array([[1, 1, 1],
-                          [3, 2, 1],
-                          [1, 1, 1]])
+    wrap_edges = True
+    input_arr = np.array([[1, 2, 1],
+                          [3, 4, 3],
+                          [1, 2, 1]])
     
-    input_types = np.array([1, 2, 3])
+    input_types = np.unique(input_arr)
+    num_types = len(input_types)
+    print(input_types)
     
-    rules_arr = np.zeros((3, 3, 3, 3))
+    rules_arr = np.zeros((num_types, 3, 3, num_types))
     
-    generate_rules(input_arr, input_types, rules_arr, wrap_edges=False)
+    generate_simple_rules(input_arr, input_types, rules_arr, wrap_edges=wrap_edges)
     
     # All cell-type relationships with 1
     print(rules_arr[:, :, :, 0])
+    solution, r, fr, cc = wfc_recursive_solve(np.ones((7, 7, num_types), dtype=np.bool_), rules_arr, (1, 1), wrap_edges=wrap_edges)
+    print('finished:')
+    print(solution, r, fr, cc)
+    print(prob_field_to_array(solution, input_types))

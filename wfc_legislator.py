@@ -108,9 +108,6 @@ class Legislator:
         assert input_grid.ndim == 2
         grid = input_grid.copy()
         
-        # patterns_dict = {}
-        # patterns_count = {} # ?
-        
         # Wrapped edges are handled by padding the grid with mirrored values.
         if self.wrap_edges:
             x_range = grid.shape[0]

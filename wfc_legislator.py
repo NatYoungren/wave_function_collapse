@@ -160,6 +160,19 @@ class Legislator:
         return transformed_patterns
     
     
+    def determine_pattern_adjacency(self, patterns: np.ndarray) -> np.ndarray:
+        adjacencies = [] # TODO: Consider making this a set length, this would let me query instantly for a given adjacency.
+        for i1, pattern1 in enumerate(patterns):
+            for i2, pattern2 in enumerate(patterns):
+                for offset in self.neighbor_offsets:
+                    a1 = pattern1[max(0, offset[0]):min(pattern1.shape[0], pattern2.shape[0]+offset[0]), max(0, offset[1]):min(pattern1.shape[1], pattern2.shape[1]+offset[1])]
+                    a2 = pattern2[max(0, -offset[0]):min(pattern2.shape[0], pattern1.shape[0]-offset[0]), max(0, -offset[1]):min(pattern2.shape[1], pattern1.shape[1]-offset[1])]
+                    if np.array_equal(a1, a2):
+                        adjacencies.append((i1, i2, offset))
+
+        return adjacencies
+    
+    
     @staticmethod
     def apply_rotation(patterns: np.ndarray) -> np.ndarray:
         assert patterns.ndim == 3

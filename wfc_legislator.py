@@ -94,14 +94,22 @@ class Legislator:
                 
         return img
     
+    
     def get_rules(self, input_grid: np.ndarray) -> np.ndarray:
         # Extract patterns from the input grid.
         # Transform patterns based on the legislator's settings.
         # Remove duplicate patterns along the way.
         # Identify which patterns are allowed to be adjacent to each other.
-        # self.
-        pass
         
+        patterns = self.extract_patterns(input_grid)
+        patterns = self.remove_pattern_dupes(patterns) # TODO: incorporate into extract/transform functions.
+        
+        patterns = self.transform_patterns(patterns)
+        patterns = self.remove_pattern_dupes(patterns)
+
+        adjacency_rules = self.determine_pattern_adjacency(patterns)
+        
+        return patterns, adjacency_rules
     
     
     def extract_patterns(self, input_grid: np.ndarray) -> np.ndarray:

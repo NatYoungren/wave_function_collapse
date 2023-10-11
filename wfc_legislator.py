@@ -229,7 +229,8 @@ if __name__ == '__main__':
     t_patterns = leg.remove_pattern_dupes(t_patterns)
     print(t_patterns.shape)
 
-
+    adjacencies = leg.determine_pattern_adjacency(t_patterns)
+    print(adjacencies)
     
     # # Check image
     # import cv2

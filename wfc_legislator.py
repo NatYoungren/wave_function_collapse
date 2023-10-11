@@ -209,7 +209,7 @@ class Legislator:
         
 if __name__ == '__main__':
 
-    leg = Legislator(wrap_edges=False, oob_value=None, pattern_size=(3, 3))
+    leg = Legislator(wrap_edges=False, oob_values=None, pattern_size=(2, 2))
     
     imgname = 'images/samples/forest1.png'
     

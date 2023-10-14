@@ -24,4 +24,4 @@ def default_is_broken(prob_field: np.ndarray) -> bool:
 # NOTE: This is contingent upon the probability field not being broken.
 #       In the future I should remove this reliance despite it typically being a redundant check.
 def default_is_solved(prob_field: np.ndarray) -> bool:
-    return prob_field.sum() == prob_field.size
+    return prob_field.sum() == prob_field.shape[0] * prob_field.shape[1]

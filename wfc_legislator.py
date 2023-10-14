@@ -77,7 +77,20 @@ class Legislator:
                 tile_grid[x, y] = tile_id
                 
         return tile_grid, tile_ids, tile_counts
-                    
+
+
+    def convert_patterns_to_tiles(self, pattern_grid: np.ndarray, patterns: np.ndarray) -> np.ndarray:
+        tile_grid = np.empty(pattern_grid.shape, dtype=int)
+        for x in range(pattern_grid.shape[0]):
+            for y in range(pattern_grid.shape[1]):
+                pattern = pattern_grid[x, y]
+                # print(pattern)
+                tile = patterns[pattern][0][0]
+                # print(tile)
+                tile_grid[x, y] = tile
+                
+        return tile_grid
+    
     
     def convert_grid_to_img(self, input_grid: np.ndarray, tile_dict: dict) -> np.ndarray:
         assert input_grid.ndim == 2

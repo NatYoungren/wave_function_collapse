@@ -114,10 +114,20 @@ class Solver:
     
     def solve(self, verbose: bool = False):
         while not self.solve_next_cell():
+            self.solve_count += 1
             if verbose:
+                # print('\nUnsolved:',np.count_nonzero(self.summarized_prob_field == -1),
+                #       'Solves:', self.solve_count,
+                #       '\nBacktracks:', self.backtrack_count,
+                #       'Depth:', len(self.history),
+                #       '\nCollapses:', self.collapse_count,
+                #       'Propagations:', self.propagation_count)
+                pass
                 print(self.summarized_prob_field)
+                # input()
                 
-        return self.prob_field
+        return self.prob_field.argmax(axis=2)     
+    
     
     def solve_next_cell(self) -> bool:
         if self.is_broken is not None and self.is_broken(self.prob_field):

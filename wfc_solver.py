@@ -4,7 +4,7 @@
 import numpy as np
 from typing import Optional, Callable, Tuple#, Union, Any, Iterable, Sequence, List, Dict, Set, FrozenSet, Deque, Iterator, TypeVar, Generic, NamedTuple, cast
 
-from heuristic_utils import make_entropy_cell_heuristic, make_random_weight_map
+from heuristic_utils import make_entropy_cell_heuristic, make_pattern_heuristic, make_random_weight_map
 from setup_utils import view_prob_field
 from solver_utils import PF_TYPE, weighted_choice, default_is_broken, default_is_solved
 

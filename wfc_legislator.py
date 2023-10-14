@@ -195,6 +195,27 @@ class Legislator:
         return adjacencies
     
     
+    # @staticmethod
+    # @njit
+    # def _bool_adjacency_helper(patterns: np.ndarray, offsets: tuple) -> np.ndarray:
+    #     adjacencies = np.zeros((len(offsets), len(patterns), len(patterns)), dtype=np.bool_)
+    #     for i, offset in enumerate(offsets):
+    #         for i1, pattern1 in enumerate(patterns):
+    #             for i2, pattern2 in enumerate(patterns):
+    #                 # for offset in offsets:
+    #                 a1 = pattern1[max(0, offset[0]):min(pattern1.shape[0], pattern2.shape[0]+offset[0]), max(0, offset[1]):min(pattern1.shape[1], pattern2.shape[1]+offset[1])]
+    #                 a2 = pattern2[max(0, -offset[0]):min(pattern2.shape[0], pattern1.shape[0]-offset[0]), max(0, -offset[1]):min(pattern2.shape[1], pattern1.shape[1]-offset[1])]
+    #                 if np.array_equal(a1, a2):
+    #                     adjacencies[i, i1, i2] = True
+    #                     # allowed_neighbors.append(i2)
+    #                     # adj.append((i1, i2))
+    #         # adjacencies.append((offset, adj))
+
+    #     # Format is:
+    #     #   (offset, [[neighbors of pattern0], [neighbors of pattern1], ...])
+    #     #   The index of the list of neighbors indicates whose neighbors are being referenced.
+    #     return adjacencies
+    
     @staticmethod
     def apply_rotation(patterns: np.ndarray) -> np.ndarray:
         assert patterns.ndim == 3

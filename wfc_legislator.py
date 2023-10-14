@@ -144,14 +144,15 @@ class Legislator:
             
         # Iterate over the grid and store all cutouts of the specified pattern size.
         stored_patterns = np.empty((x_range * y_range, self.pattern_size[0], self.pattern_size[1]), dtype=int)
+        i = 0
         for x in range(x_range):
             for y in range(y_range):
                 
                 pattern = grid[x:x+self.pattern_size[0], y:y+self.pattern_size[1]]
                 # patterns_dict[len(patterns_dict)] = pattern
-                stored_patterns[x*x_range+y] = pattern
+                stored_patterns[i] = pattern
+                i+= 1
                 # stored_patterns.append(pattern)
-                
         return stored_patterns
     
     

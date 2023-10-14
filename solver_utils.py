@@ -17,7 +17,7 @@ def weighted_choice(weights):
 
 # If any cell has no remaining options, the probability field is broken.
 def default_is_broken(prob_field: np.ndarray) -> bool:
-    return not prob_field.sum(axis=2).all()
+    return not np.count_nonzero(prob_field, axis=2).all()
 
 
 # If all cells have only one remaining option, the probability field is solved.

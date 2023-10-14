@@ -319,30 +319,47 @@ class Legislator:
         
         
 if __name__ == '__main__':
+    imgname = 'images/samples/Flowers.png'
 
-    leg = Legislator(wrap_edges=False, oob_values=None, pattern_size=(2, 2))
-    
-    imgname = 'images/samples/forest1.png'
+    rotate_patterns =   False
+    flip_patterns =     False
+    wrap_edges =        False
+    oob_values =        False
+    pattern_size =      (3, 3)
     
     input_img = imageio.v2.imread(imgname)[:, :, :3]
+
+    # Initialize legislator
+    leg = Legislator(rotate_patterns=rotate_patterns,
+                     flip_patterns=flip_patterns,
+                     wrap_edges=wrap_edges,
+                     oob_values=oob_values,
+                     pattern_size=pattern_size)
+    
     
     tile_grid, tile_dict, tile_counts = leg.convert_img_to_tiles(input_img)
 
-    patterns = leg.extract_patterns(tile_grid)
-    print(patterns.shape)
+    # patterns = leg.extract_patterns(tile_grid)
+    # print(patterns.shape)
 
-    patterns = leg.remove_pattern_dupes(patterns)
-    print(patterns.shape)
+    # patterns = leg.remove_pattern_dupes(patterns)
+    # print(patterns.shape)
 
-    t_patterns = leg.transform_patterns(patterns)
-    print(t_patterns.shape)
+    # t_patterns = leg.transform_patterns(patterns)
+    # print(t_patterns.shape)
         
-    t_patterns = leg.remove_pattern_dupes(t_patterns)
-    print(t_patterns.shape)
+    # t_patterns = leg.remove_pattern_dupes(t_patterns)
+    # print(t_patterns.shape)
 
-    adjacencies = leg.determine_pattern_adjacency(t_patterns)
-    print(adjacencies)
+    # adjacencies = leg.determine_pattern_adjacency(t_patterns)
+    # print(len(adjacencies))
     
+    patterns, pattern_counts, adjacencies = leg.get_rules(tile_grid)
+    print(adjacencies)
+    print(patterns)
+    print(pattern_counts)
+    print(len(patterns))
+
     # # Check image
     # import cv2
     # output_img = leg.convert_grid_to_img(tile_grid, tile_dict)

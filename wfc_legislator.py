@@ -2,6 +2,7 @@
 # October 10, 2023
 
 import numpy as np
+from numba import njit
 import imageio
 from typing import Optional, Callable, Tuple, Dict #, Union, Any, Iterable, Sequence, List,  Set, FrozenSet, Deque, Iterator, TypeVar, Generic, NamedTuple, cast
 
@@ -163,18 +164,34 @@ class Legislator:
             transformed_patterns = self.apply_flip(transformed_patterns)
             
         return transformed_patterns
+        
+    
+    def determine_pattern_adjacency(self, patterns: np.ndarray):
+        return self._adjacency_helper(patterns, self.neighbor_offsets)
+        # return self._bool_adjacency_helper(patterns, self.neighbor_offsets)
     
     
-    def determine_pattern_adjacency(self, patterns: np.ndarray) -> np.ndarray:
-        adjacencies = [] # TODO: Consider making this a set length, this would let me query instantly for a given adjacency.
-        for i1, pattern1 in enumerate(patterns):
-            for i2, pattern2 in enumerate(patterns):
-                for offset in self.neighbor_offsets:
+    @staticmethod
+    @njit
+    def _adjacency_helper(patterns: np.ndarray, offsets: tuple) -> np.ndarray:
+        adjacencies = []
+        for offset in offsets:
+            adj = []
+            for i1, pattern1 in enumerate(patterns):
+                allowed_neighbors = []
+                for i2, pattern2 in enumerate(patterns):
+                    # for offset in offsets:
                     a1 = pattern1[max(0, offset[0]):min(pattern1.shape[0], pattern2.shape[0]+offset[0]), max(0, offset[1]):min(pattern1.shape[1], pattern2.shape[1]+offset[1])]
                     a2 = pattern2[max(0, -offset[0]):min(pattern2.shape[0], pattern1.shape[0]-offset[0]), max(0, -offset[1]):min(pattern2.shape[1], pattern1.shape[1]-offset[1])]
                     if np.array_equal(a1, a2):
-                        adjacencies.append((i1, i2, offset))
+                        allowed_neighbors.append(i2)
+                        # adj.append((i1, i2))
+                adj.append(allowed_neighbors)
+            adjacencies.append((offset, adj))
 
+        # Format is:
+        #   (offset, [[neighbors of pattern0], [neighbors of pattern1], ...])
+        #   The index of the list of neighbors indicates whose neighbors are being referenced.
         return adjacencies
     
     

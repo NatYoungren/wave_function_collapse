@@ -24,13 +24,13 @@ def make_random_weight_map(shape: Tuple[int, int]):
 def make_entropy_cell_heuristic(cell_weights: np.ndarray[np.float_]):
     # Define a method to select the cell with the lowest entropy, factoring in a map of pregenerated weights.
     
-    def get_next_cell(prob_field: PF_TYPE, _: PF_TYPE) -> Tuple[int, int]:
+    def get_next_cell(prob_field: PF_TYPE) -> Tuple[int, int]:
         # NOTE: Axis == 2 because we put the tile types in the 3rd dimension.
         
         unresolved_cell_mask = np.count_nonzero(prob_field, axis=2) > 1
         weights = np.where(
             unresolved_cell_mask,
-            np.sum(cell_weights * prob_field, axis=0), # TODO: Check if this axis is correct.
+            cell_weights + np.count_nonzero(prob_field, axis=2),
             np.inf,
         )
         row, col = np.unravel_index(np.argmin(weights), weights.shape)

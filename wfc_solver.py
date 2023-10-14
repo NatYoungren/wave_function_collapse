@@ -9,18 +9,6 @@ from setup_utils import view_prob_field
 from solver_utils import PF_TYPE, weighted_choice, default_is_broken, default_is_solved
 
 
-#   FUTURE WORK:
-# Adapt prob_field to having one layer for each rule-pattern.
-# Identify rule patterns in the input array.
-# Collapse cells based on possible pattern adjacency.
-
-# Each x/y prob_field index still maps directly to a pixel/cell, but collapses to a rule pattern rather than a color.
-# Rule patterns are by passing a rules shape lens over the entire rules array, and storing each possible pattern.
-# Rules can be rotated/flipped to generate more patterns.
-# Call a location heuristic to identify the next wave (cell) to collapse.
-# Call a pattern heuristic to identify the next pattern to collapse to.
-
-
 
 # Solver loop:
 #  Check if unsolvable.

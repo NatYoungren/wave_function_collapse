@@ -156,6 +156,79 @@ class Solver:
         #  If all patterns fail, return None and revert to previous recursion level.
 
     
+    def collapse_wave(self, x: int, y: int, p: int) -> bool:
+        # print('> collapse_wave', x, y, p)
+        # print(self.prob_field[x, y, p])
+        self.collapse_count += 1
+        self.prob_field[x, y, :] = False
+        self.prob_field[x, y, p] = True
+        
+        collapse_queue = [(x, y, p)]
+        
+        c_count = 0
+        n_count = 0
+        
+        while len(collapse_queue) > 0:
+            # c_count += 1 # DEBUG:
+            next_collapse = collapse_queue.pop()
+            x, y, p = next_collapse
+            # print('Collapsing:', x, y, p, 'Remaining:', len(collapse_queue))
+
+            for (dx, dy), neighbors in self.rules:
+                # n_count += 1 # DEBUG:
+                
+                # print('DXDY:',dx, dy, 'COUNTS:',c_count, n_count)
+                _x, _y = x + dx, y + dy
+                if _x < 0 or _x >= self.shape[0] or _y < 0 or _y >= self.shape[1]:
+                    continue
+                
+                offset_neighbors = neighbors[p]
+                
+                mask_array = np.zeros((len(self.patterns)), dtype=bool)
+                mask_array[offset_neighbors] = True
+                
+                # DEBUG: testing rule masks
+                # mask_array = neighbors[p]
+                
+                # print('before', self.prob_field[_x, _y, :])
+                
+                _s = np.count_nonzero(self.prob_field[_x, _y, :])
+                # print('mask', mask_array)
+                # print('\n Masking')
+                # print(mask_array)
+                # print(self.prob_field[_x, _y, :])
+                # print(np.logical_and(self.prob_field[_x, _y, :], mask_array))
+                self.prob_field[_x, _y, :] = np.logical_and(self.prob_field[_x, _y, :], mask_array)
+                #self.prob_field[_x, _y, :] @ mask_array
+                # print(self.prob_field[_x, _y, :])
+                
+                
+                # print('after', self.prob_field[_x, _y, :])
+                # print('collapse_wave', _x, _y, offset_neighbors)
+                
+                s = np.count_nonzero(self.prob_field[_x, _y, :])
+                
+                if s == 0:
+                    # print('Failing.')
+                    return False
+                
+                if _s != s and s == 1:
+                    
+                    collapse_queue.append((x, y, np.argmax(self.prob_field[_x, _y, :])))
+                    # print('collapse recursing into neighbor')
+                    # print('Adding Neighbor')
+                    self.propagation_count += 1
+                    # # r = 
+                    # if not self.collapse_wave(_x, _y, np.argmax(self.prob_field[_x, _y, :])):
+                    #     return False
+        # print('Finished queue')
+        return True
+        # for r in self.rules:
+        #     if r[0] == p:
+        #         _x, _y = x + r[2][0], y + r[2][1]
+        #         self.prob_field[_x, _y, r[1]] = True
+                
+    
 
     def init_prob_field(self, shape: Tuple[int, int], patterns: np.ndarray) -> PF_TYPE:
         # TODO: Implement these options.

@@ -130,31 +130,60 @@ class Solver:
     
     
     def solve_next_cell(self) -> bool:
+        # Check if any cells are unsolvable.
         if self.is_broken is not None and self.is_broken(self.prob_field):
-            # TODO: Use history to revert to previous state.
-            return False
+            if not self.attempt_backtrack():
+                print('Failed to solve (1).')
+                return True
         
+        # Check if the probability field is solved.
         if self.is_solved is not None and self.is_solved(self.prob_field):
+            print('Solved.')
             return True
 
-        # Propagate until a choice must be made.
+        # Propagate a cell if it has been resolved by trying all other options.
+        # Only triggers when reloading a previous state.
+        if self.check_cell is not None:
+            print("Rechecking cell.")
+            x, y, p = self.check_cell
+            self.check_cell = None
+            if not self.collapse_wave(x, y, p):
+                if not self.attempt_backtrack():
+                    print('Failed to solve (2).')
+                    return True
+            return False
+        
+        # Propagate until a choice must be made. # NOTE: This is done by the collapse_wave function.
+
         
         #  Identify next cell to collapse.
         x, y = self.cell_heuristic(self.prob_field)
-        
+
         #  Identify next pattern to collapse cell to.
-        p = self.pattern_heuristic(self.prob_field)
+        p = self.pattern_heuristic(self.prob_field[x, y])
         
         #  Store copy of the probability field.
-        self.history.append(self.prob_field.copy())
-        # TODO: Remove selected cell/pattern from stored probability field to prevent repetition.
-        
-        
+        stored_copy = self.prob_field.copy() # Remove selected option from stored copy.
+        stored_copy[x, y, p] = False
+        if np.count_nonzero(stored_copy[x, y, :]) > 0:
+            if np.count_nonzero(stored_copy[x, y, :]) == 1:
+                self.cell_history.append((x, y, np.argmax(stored_copy[x, y, :])))
+            else:
+                self.cell_history.append(None)
+            # TODO: We are producing issues here because we are solving and not propagating.
+            self.history.append(stored_copy)
+            
         
         #  Collapse cell to pattern and recurse.  (TODO: Replace recursion with flat iteration)
         #  If recursion fails, restore probability field and try next pattern.
         #  If all patterns fail, return None and revert to previous recursion level.
 
+        if not self.collapse_wave(x, y, p):
+            if not self.attempt_backtrack():
+                print('Failed to solve (2).')
+                return True
+        
+        return False
     
     def collapse_wave(self, x: int, y: int, p: int) -> bool:
         # print('> collapse_wave', x, y, p)

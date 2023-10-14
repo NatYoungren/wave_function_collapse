@@ -39,7 +39,7 @@ def make_entropy_cell_heuristic(cell_weights: np.ndarray[np.float_]):
     return get_next_cell
 
 
-def makeWeightedPatternHeuristic(pattern_weights: np.ndarray[np.float_]):
+def make_pattern_heuristic(pattern_weights: np.ndarray[np.float_]):
     # Define a method to select the pattern with the lowest entropy, factoring in a map of pregenerated weights.
     num_of_patterns = len(pattern_weights)
 

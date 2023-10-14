@@ -164,6 +164,15 @@ class Solver:
         # if self.oob_values:
         #     pass
         return np.ones((shape[0], shape[1], patterns.shape[0]), dtype=np.bool_)
+    
+    
+    def attempt_backtrack(self):
+        if len(self.history) > 0:
+            self.prob_field = self.history.pop()
+            self.check_cell = self.cell_history.pop()
+            self.backtrack_count += 1
+            return True
+        return False
         
     
     @property

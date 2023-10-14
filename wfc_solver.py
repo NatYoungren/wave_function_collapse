@@ -28,19 +28,23 @@ class Solver:
                  patterns:          np.ndarray, # Type?
                  rules:             np.ndarray, # Type?
                  
-                 weight_map:        Optional[np.ndarray[np.float_]] = None,
+                 cell_weights:      Optional[np.ndarray[np.float_]] = None,
+                 pattern_weights:   Optional[np.ndarray[np.float_]] = None,
                  
-                 cell_heuristic:    Optional[Callable[[PF_TYPE]]] = None,
-                 pattern_heuristic: Optional[Callable[[PF_TYPE]]] = None,
+                 cell_heuristic:    Optional[Callable[[PF_TYPE], Tuple]] = None,
+                 pattern_heuristic: Optional[Callable[[PF_TYPE], Tuple]] = None,
                  
-                 is_broken:         Optional[Callable[[PF_TYPE]]] = None,
-                 is_solved:         Optional[Callable[[PF_TYPE]]] = None,
+                 is_broken:         Optional[Callable[[PF_TYPE], bool]] = None,
+                 is_solved:         Optional[Callable[[PF_TYPE], bool]] = None,
                  
                  prob_field:        Optional[PF_TYPE] = None,
                  default_shape:     Tuple[int, int] = (24, 24),
                  
-                #  oob_value:         int = -1,
-                #  neighbor_offsets:  Tuple[Tuple[int, int], ...] = ((-1, 0), (0, -1), (1, 0), (0, 1)),
+                 # TODO: Implement
+                 wrap_edges:        bool = False,
+                 oob_values:        bool = False,
+                 oob_id:            int = -1,
+                
                 #  pattern_size:      Tuple[int, int] = (2, 2), # (3, 3)? # Derivative of patterns?
                  ) -> None:
         
@@ -56,7 +60,7 @@ class Solver:
         # Shape is the dimensions of the 2d grid being solved (w, h).
         if prob_field is None:
             self.shape = default_shape
-            prob_field = np.ones((default_shape[0], default_shape[1], patterns.shape[0],), dtype=np.bool_)
+            prob_field = self.init_prob_field(default_shape, patterns)
         else:
             assert prob_field.shape[2] == patterns.shape[0], "Error: 3rd dimension of probability field must match number of patterns."
             self.shape = prob_field.shape[:2]
@@ -67,15 +71,19 @@ class Solver:
         if cell_heuristic is None:
             
             # Weights are applied to cells during cell selection.
-            if weight_map is None:
-                weight_map = make_random_weight_map(self.shape)
+            if cell_weights is None:
+                cell_weights = make_random_weight_map(self.shape)
                 
-            cell_heuristic = make_entropy_cell_heuristic(weight_map)
+            cell_heuristic = make_entropy_cell_heuristic(cell_weights)
         self.cell_heuristic = cell_heuristic
         
         # Pattern heuristic is used to select the next pattern to collapse a cell into.
         if pattern_heuristic is None:
-            pattern_heuristic = lambda pf: None
+
+            if pattern_weights is None:
+                pattern_weights = make_random_weight_map(len(patterns))
+            
+            pattern_heuristic = make_pattern_heuristic(pattern_weights)
         self.pattern_heuristic = pattern_heuristic
         
         # is_broken is used to determine if the probability field is unsolvable.
@@ -91,13 +99,17 @@ class Solver:
         # Stores past states of the probability field.
         #  Used to revert to previous states without recursion.
         self.history = []
+        # DEBUG: This is shitty design
+        self.cell_history = []
+        self.check_cell = None
         
         # Metrics
         self.solve_count = 0
         self.propagation_count = 0 # Optional
         self.collapse_count = 0
+        self.backtrack_count = 0
         
-    # TODO: Alternative constructor that takes a starting image and generates the rules and patterns?
+    # TODO: Alternative constructor that takes a starting image and generates the rules and patterns?    
     
     
     def solve(self, verbose: bool = False):
@@ -133,7 +145,15 @@ class Solver:
         #  If recursion fails, restore probability field and try next pattern.
         #  If all patterns fail, return None and revert to previous recursion level.
 
-        
+    
+
+    def init_prob_field(self, shape: Tuple[int, int], patterns: np.ndarray) -> PF_TYPE:
+        # TODO: Implement these options.
+        # if self.wrap_edges:
+        #     pass
+        # if self.oob_values:
+        #     pass
+        return np.ones((shape[0], shape[1], patterns.shape[0]), dtype=np.bool_)
         
     
     @property

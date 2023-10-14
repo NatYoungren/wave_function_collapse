@@ -109,21 +109,36 @@ class Legislator:
         return img
     
     
-    def get_rules(self, input_grid: np.ndarray) -> np.ndarray:
+    def get_rules(self, input_grid: np.ndarray) -> Tuple[np.ndarray[int], list]:
         # Extract patterns from the input grid.
         # Transform patterns based on the legislator's settings.
         # Remove duplicate patterns along the way.
         # Identify which patterns are allowed to be adjacent to each other.
         
         patterns = self.extract_patterns(input_grid)
-        patterns = self.remove_pattern_dupes(patterns) # TODO: incorporate into extract/transform functions.
+        print(patterns.shape)
         
-        patterns = self.transform_patterns(patterns)
-        patterns = self.remove_pattern_dupes(patterns)
-
-        adjacency_rules = self.determine_pattern_adjacency(patterns)
         
-        return patterns, adjacency_rules
+        # unique_patterns = self.remove_pattern_dupes(patterns) # TODO: incorporate into extract/transform functions?
+        # print(unique_patterns.shape)
+        
+        
+        patterns = self.transform_patterns(patterns)        
+        print(patterns.shape)
+        
+        
+        unique_patterns, pattern_counts = self.remove_pattern_dupes(patterns)
+        print(unique_patterns.shape)
+        
+        #  # Get frequency of patterns in the input grid.
+        # pattern_counts = self.get_pattern_counts(patterns, unique_patterns)
+        print(pattern_counts)
+        
+        
+        adjacency_rules = self.determine_pattern_adjacency(unique_patterns)
+        print(len(adjacency_rules))
+        
+        return unique_patterns, pattern_counts, adjacency_rules
     
     
     def validate_grid_adjacencies(self, pattern_grid: np.ndarray, adjacencies: list) -> bool:

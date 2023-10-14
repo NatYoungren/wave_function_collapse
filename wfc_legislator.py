@@ -126,6 +126,36 @@ class Legislator:
         return patterns, adjacency_rules
     
     
+    def validate_grid_adjacencies(self, pattern_grid: np.ndarray, adjacencies: list) -> bool:
+        
+        viable_grid = np.zeros((*pattern_grid.shape, 4), dtype=bool)
+        
+        for x in range(pattern_grid.shape[0]):
+            for y in range(pattern_grid.shape[1]):
+                p1 = pattern_grid[x, y]
+                for i, (offset, rules) in enumerate(adjacencies):
+                    
+                    _x, _y = x + offset[0], y + offset[1]
+                    if _x < 0 or _x >= pattern_grid.shape[0] or _y < 0 or _y >= pattern_grid.shape[1]:
+                        # Considered viable if neighbor is OOB
+                        viable_grid[x, y, i] = True
+                        continue
+                    
+                    # # DEBUG: Testing bool mask rules
+                    # if rules[p1, pattern_grid[_x, _y]]:
+                    #     viable_grid[x, y, i] = True
+                    #     continue
+                    if pattern_grid[_x, _y] in rules[p1]:
+                        # Consider viable if neighbor is in allowed neighbors
+                        viable_grid[x, y, i] = True
+                        # print('Viable:', x, y, i)
+                        continue
+                    
+                    print('Not viable:', x, y, i, viable_grid[x, y], pattern_grid[_x, _y])#, rules[p1])
+                    
+                    
+        return viable_grid
+    
     def extract_patterns(self, input_grid: np.ndarray) -> np.ndarray:
         assert input_grid.ndim == 2
         grid = input_grid.copy()

@@ -289,9 +289,18 @@ class Legislator:
         return flipped_patterns
     
     
+    # TODO: Clean up this pattern counts logic to make more sense?
+    #       Should it be here? Should it be scaled between 0 and one?
     @staticmethod
     def remove_pattern_dupes(patterns: np.ndarray) -> np.ndarray:
-        return np.unique(patterns, axis=0)
+        unique_patterns = np.unique(patterns, axis=0)
+        pattern_counts = np.zeros(len(unique_patterns), dtype=np.float64)
+        for i, p in enumerate(unique_patterns):
+            match = np.all(patterns == p, axis=(1, 2))
+            pattern_counts[i] = np.count_nonzero(match)
+            # print(match, pattern_counts)
+        
+        return unique_patterns, pattern_counts
         
         
 if __name__ == '__main__':
